@@ -276,18 +276,20 @@ local mainName, faceWidth, faceHeight, sideWidth, sideHeight
 	if i == 4 then
 		mainName = "box_big" --prefix of .png file
 		faceWidth, faceHeight = 60/2, 58/2
-		sideWidth, sideHeight = 16/2, 12/2
-	elseif i == 3 then
+		sideWidth, sideHeight = 15/2, 5/2
+	elseif i == 2 then
 		mainName = "box_big"
 		faceWidth, faceHeight = 60, 58/2
-		sideWidth, sideHeight = 16, 12/2
+		sideWidth, sideHeight = 20, 20
 	else
 		mainName = "box_big"
 		faceWidth, faceHeight = 60, 58
-		sideWidth, sideHeight = 16, 12
+		sideWidth, sideHeight = 15, 5
 	end
 	
 	allBoxes[i] = {}
+	allBoxes[i].changeAngle = math.deg ( math.atan2 ( sideWidth, sideHeight ) )
+	print ( i, allBoxes[i].changeAngle )
 	allBoxes[i].id = i
 	--id is same for every part of box. It is used to find other parts of the same box in allBoxes table.
 	allBoxes[i].group = display.newGroup()
@@ -300,6 +302,7 @@ local mainName, faceWidth, faceHeight, sideWidth, sideHeight
 	--face of box that doesnt deform and only rotates
 	allBoxes[i].face = display.newImageRect( allBoxes[i].group, mainName.."_face.png", faceWidth, faceHeight )
 	allBoxes[i].face.id = i
+	allBoxes[i].face.alpha = 0.5
 	--pictures coordinates are relative to group so 0,0 coordinate is center of the face
 	
 	local color --color to diferenciate boxes in debug
@@ -356,43 +359,42 @@ local mainName, faceWidth, faceHeight, sideWidth, sideHeight
 	--We need 4 key values for box at 0, 90, 180 and 270 degrees rotation.
 	--Values between key values will be calculated on run by reDrawBoxes on enterFrame event.
 
-		local LW = allBoxes[i].left.width
-		local LH = allBoxes[i].left.height
-		local RW = allBoxes[i].right.width
-		local RH = allBoxes[i].right.height
-		
+		local SW = allBoxes[i].left.width
 		local TH = allBoxes[i].top.height
-		local BH = allBoxes[i].bottom.height
-		
+		local StT, TtS = TH-SW, SW-TH --side to top, top to side ( how much do I need to add to change size of part to oposite side)
+
 	allBoxes[i].corners = {}
 	
 	--	at 0 degrees: initial value, siting on bottom
 	allBoxes[i].corners[1] = { 
-		left = { x1 = 2*LW, y1 = -TH, x2 = 2*LW, y2 = -BH },
-		right = { x4 = 0, y4 = -TH, x3 = 0, y3 = -BH },
-		top = { x1 = LW, y1 = 0, x4 = RW, y4 = 0 },
-		bottom = { x2 = LW, y2 = -2*BH, x3 = RW, y3 = -2*BH }
+		left = { x1 = 2*SW, y1 = -TH, x2 = 2*SW, y2 = -TH },
+		right = { x4 = 0, y4 = -TH, x3 = 0, y3 = -TH },
+		top = { x1 = SW, y1 = 0, x4 = SW, y4 = 0 },
+		bottom = { x2 = SW, y2 = -2*TH, x3 = SW, y3 = -2*TH }
 	}
 		--at 90 degr: laying on right side
+		--left side at top
 	allBoxes[i].corners[2] = { 
-		left = { x1 = 0, y1 = -TH, x2 = 0, y2 = -BH },
-		right = { x4 = -2*RW, y4 = -TH, x3 = -2*RW, y3 = -BH },
-		top = { x1 = -LW, y1 = 0, x4 = -RW, y4 = 0 },
-		bottom = { x2 = -LW, y2 = -2*BH, x3 = -RW, y3 = -2*BH },
+		left = { x1 = TtS, y1 = -SW, x2 = TtS, y2 = -SW },
+		right = { x4 = -SW-TH, y4 = -SW, x3 = -SW-TH, y3 = -SW },
+		top = { x1 = -TH, y1 = -TtS, x4 = -TH, y4 = -TtS },
+		--X: we set it to match height of top parts (left right in this case), y: we just need deform part to have size of side
+		bottom = { x2 = -TH, y2 = -TH-SW, x3 = -TH, y3 = -TH-SW },
+		--x: we change its dimension to top, y: we set it to 0 then push it further to side size
 	}
 		--at 180 degr: laying on top side
 	allBoxes[i].corners[3] = { 
-		left = { x1 = 0, y1 = BH, x2 = 0, y2 = BH },
-		right = { x4 = -2*RW, y4 = TH, x3 = -2*RW, y3 = BH },
-		top = { x1 = -LW, y1 = 2*TH, x4 = -RW, y4 = 2*TH },
-		bottom = { x2 = -RW, y2 = 0, x3 = -RW, y3 = 0 },
+		left = { x1 = 0, y1 = TH, x2 = 0, y2 = TH },
+		right = { x4 = -2*SW, y4 = TH, x3 = -2*SW, y3 = TH },
+		top = { x1 = -SW, y1 = 2*TH, x4 = -SW, y4 = 2*TH },
+		bottom = { x2 = -SW, y2 = 0, x3 = -SW, y3 = 0 },
 	}
 		--at 270 degr: laying on left side
-		allBoxes[i].corners[4] = { 
-		left = { x1 = 2*LW, y1 = TH, x2 = 2*LW, y2 = BH },
-		right = { x4 = 0, y4 = TH, x3 = 0, y3 = BH },
-		top = { x1 = RW, y1 = 2*TH, x4 = LW, y4 = 2*TH },
-		bottom = { x2 = LW, y2 = 0, x3 = RW, y3 = 0 },
+	allBoxes[i].corners[4] = { 
+		left = { x1 = SW+TH, y1 = SW, x2 = SW+TH, y2 = SW },
+		right = { x4 = -TtS, y4 = SW, x3 = -TtS, y3 = SW },
+		top = { x1 = TH, y1 = TH+SW, x4 = TH, y4 = TH+SW },
+		bottom = { x2 = TH, y2 = TtS, x3 = TH, y3 = TtS },
 	}
 
 end
@@ -474,18 +476,19 @@ local function reDrawBoxes () --each frame do
 			
 			thisBox.angleText.text = "angle: "..tostring (angle):sub(1,5)
 			
+			local changeAngle = thisBox.changeAngle --angle when we should detect hits on different sides
 			--which parts should detect hits from other objects? Depends on angle...
 			local mainSides = {} --sides that should detect other boxes for drawOrder
-			if angle <= 45 then
+			if angle <= changeAngle then
 				mainSides[1] = thisBox.top
 				mainSides[2] = thisBox.right
-			elseif angle <= 135 then
+			elseif angle <= 180-(90-changeAngle) then
 				mainSides[1] = thisBox.left
 				mainSides[2] = thisBox.top
-			elseif angle <= 225 then
+			elseif angle <= 270-(90-changeAngle) then
 				mainSides[1] = thisBox.bottom
 				mainSides[2] = thisBox.left
-			elseif angle <= 315 then
+			elseif angle <= 360-changeAngle then
 				mainSides[1] = thisBox.right
 				mainSides[2] = thisBox.bottom
 			else
